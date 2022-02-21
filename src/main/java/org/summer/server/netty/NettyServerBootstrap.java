@@ -7,30 +7,38 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import lombok.extern.slf4j.Slf4j;
+import org.summer.domain.ChatManager;
 import org.summer.protocol.RemoteObjectCodec;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
+@Slf4j
 public class NettyServerBootstrap {
     private final String host;
     private final int port;
     private final RemoteObjectCodec remoteObjectCodec;
     private final RequestHandlerRegistry requestHandlerRegistry;
+    private final SessionManager sessionManager;
     private final AtomicReference<ServerState> state = new AtomicReference<>(ServerState.INIT);
     private Channel serverChannel;
     private NioEventLoopGroup bossGroup;
     private NioEventLoopGroup workerGroup;
+    private ChatManager chatManager = new ChatManager();
+    private final ExecutorService businessService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
     public enum ServerState {
         INIT, STARTING, START_FAIL, RUNNING, STOPPING, STOPPED
     }
 
-
-    public NettyServerBootstrap(String host, int port, RemoteObjectCodec remoteObjectCodec, RequestHandlerRegistry requestHandlerRegistry) {
+    public NettyServerBootstrap(String host, int port, RemoteObjectCodec remoteObjectCodec, RequestHandlerRegistry requestHandlerRegistry, SessionManager sessionManager) {
         this.host = host;
         this.port = port;
         this.remoteObjectCodec = remoteObjectCodec;
         this.requestHandlerRegistry = requestHandlerRegistry;
+        this.sessionManager = sessionManager;
     }
 
     public void start() {
@@ -51,12 +59,15 @@ public class NettyServerBootstrap {
                             ch.pipeline().addFirst(new LengthFieldBasedFrameDecoder(65535, 0, 4));
                             //消息编解码
                             ch.pipeline().addLast(new MessageCodec(remoteObjectCodec));
+                            //连接管理
+                            ch.pipeline().addLast(new SessionHandler(sessionManager));
                             //业务逻辑处理
-                            ch.pipeline().addLast(new BusinessHandler(requestHandlerRegistry));
+                            ch.pipeline().addLast(new BusinessHandler(businessService, requestHandlerRegistry, chatManager));
                         }
                     })
                     .bind(host, port)
                     .syncUninterruptibly().channel();
+            log.info("server started at {}:{}", host, port);
             state.set(ServerState.RUNNING);
         } catch (Exception e) {
             bossGroup.shutdownGracefully();

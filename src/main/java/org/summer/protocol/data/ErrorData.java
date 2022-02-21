@@ -1,22 +1,30 @@
 package org.summer.protocol.data;
 
-import org.summer.protocol.RemoteObjectData;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Map;
 
-public class ErrorData implements RemoteObjectData {
+@NoArgsConstructor
+@AllArgsConstructor
+@Data
+public class ErrorData {
     private Integer errorCode;
     private List<ErrorField> errorFields;
     private Object extData;
 
-    public ErrorData(Integer errorCode, List<ErrorField> errorFields, Object extData) {
-        this.errorCode = errorCode;
-        this.errorFields = errorFields;
-        this.extData = extData;
-    }
-
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Data
     public static class ErrorField {
         private String fieldName;
         private String errorMsg;
     }
+
+    public Map<String, Object> toDataMap() {
+        return null;
+    }
+
 }

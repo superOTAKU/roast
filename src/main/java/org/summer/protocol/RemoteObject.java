@@ -1,14 +1,17 @@
 package org.summer.protocol;
 
+import cn.hutool.json.JSONObject;
+
+import java.util.Map;
+
 /**
  * 服务器和客户端交互的对象
  *
  * 如果用于实现聊天服务器，其实大部分情况下根本不需要ACK(等待ACK会很耗时，但某些系统是需要的）
  *
- * @param <V> 消息体类型
  *
  */
-public class RemoteObject<V extends RemoteObjectData> {
+public class RemoteObject {
 
     public enum RemoteObjectType {
         REQUEST, RESPONSE, SERVER_PUSH
@@ -24,11 +27,11 @@ public class RemoteObject<V extends RemoteObjectData> {
     private int clientRequestId;
 
     //请求数据
-    private V data;
+    private Map<String, Object> data;
 
     public RemoteObject() {}
 
-    public RemoteObject(RemoteObjectType type, int code, int clientRequestId, V data) {
+    public RemoteObject(RemoteObjectType type, int code, int clientRequestId, Map<String, Object> data) {
         this.type = type;
         this.code = code;
         this.clientRequestId = clientRequestId;
@@ -51,12 +54,16 @@ public class RemoteObject<V extends RemoteObjectData> {
         this.code = code;
     }
 
-    public RemoteObjectData getData() {
+    public Map<String, Object> getData() {
         return data;
     }
 
-    public void setData(V data) {
+    public void setData(Map<String, Object> data) {
         this.data = data;
+    }
+
+    public JSONObject getJSONData() {
+        return new JSONObject(data);
     }
 
     public int getClientRequestId() {
